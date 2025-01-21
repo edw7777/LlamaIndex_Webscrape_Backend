@@ -1,0 +1,6 @@
+.env
+openai_key.txt
+/storage
+/temp
+__pycache__
+secretkeygen.py
