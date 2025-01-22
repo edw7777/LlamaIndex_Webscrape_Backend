@@ -1,0 +1,10 @@
+requirements
+pip install pytube
+pip install python-multipart
+pip install boto3
+pip install fastapi
+pip install llama-index langchain openai
+pip install python-dotenv
+pip install uvicorn
+pip install beautifulsoup4
+pip install pymongo[srv] motor fastapi uvicorn
