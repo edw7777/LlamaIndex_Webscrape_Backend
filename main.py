@@ -132,7 +132,7 @@ class User(BaseModel):
     email: str
     password: str
 
-@app.post("/register")
+@app.post("/api/register")
 async def register(user: User):
     if users_collection.find_one({"email": user.email}):
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -140,7 +140,7 @@ async def register(user: User):
     users_collection.insert_one({"email": user.email, "password": hashed_password})
     return {"message": "User registered successfully"}
 
-@app.post("/login")
+@app.post("/api/login")
 async def login(user: User):
     db_user = users_collection.find_one({"email": user.email})
     if not db_user or not verify_password(user.password, db_user["password"]):
@@ -148,7 +148,7 @@ async def login(user: User):
     access_token = create_access_token(data={"sub": user.email}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.get("/me")
+@app.get("/api/me")
 async def read_user_data(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -164,7 +164,7 @@ async def read_user_data(token: str):
 class URLInput(BaseModel):
     url: str
 
-@app.post("/scrape")
+@app.post("/api/scrape")
 async def scrape_website(url_input: URLInput):
     global current_loaded_index
     url_identifier = url_input.url.replace("https://", "").replace("http://", "").replace("/", "_")
@@ -192,7 +192,7 @@ async def scrape_website(url_input: URLInput):
 
 class QueryInput(BaseModel):
   query:str
-@app.post("/query")
+@app.post("/api/query")
 async def query_index(query: QueryInput):
     if current_loaded_index is None:
         return {"error": "No index is currently loaded."}
@@ -201,6 +201,6 @@ async def query_index(query: QueryInput):
     return {"response": str(response)}
 
 # Redirect to docs by default
-@app.get("/")
+@app.get("/api/")
 async def docs_redirect():
     return RedirectResponse(url="/docs")
