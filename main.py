@@ -148,6 +148,10 @@ async def login(user: User):
     access_token = create_access_token(data={"sub": user.email}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     return {"access_token": access_token, "token_type": "bearer"}
 
+@app.post("/test")
+async def test():
+    return {"test": "test"}
+
 @app.post("login")
 async def login(user: User):
     db_user = users_collection.find_one({"email": user.email})
