@@ -140,7 +140,15 @@ async def register(user: User):
     users_collection.insert_one({"email": user.email, "password": hashed_password})
     return {"message": "User registered successfully"}
 
-@app.post("/api/login")
+@app.post("/login")
+async def login(user: User):
+    db_user = users_collection.find_one({"email": user.email})
+    if not db_user or not verify_password(user.password, db_user["password"]):
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+    access_token = create_access_token(data={"sub": user.email}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.post("login")
 async def login(user: User):
     db_user = users_collection.find_one({"email": user.email})
     if not db_user or not verify_password(user.password, db_user["password"]):
