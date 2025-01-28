@@ -140,6 +140,14 @@ async def register(user: User):
     users_collection.insert_one({"email": user.email, "password": hashed_password})
     return {"message": "User registered successfully"}
 
+@app.post("/register")
+async def register(user: User):
+    if users_collection.find_one({"email": user.email}):
+        raise HTTPException(status_code=400, detail="Email already registered")
+    hashed_password = get_password_hash(user.password)
+    users_collection.insert_one({"email": user.email, "password": hashed_password})
+    return {"message": "User registered successfully"}
+
 @app.post("/login")
 async def login(user: User):
     db_user = users_collection.find_one({"email": user.email})
