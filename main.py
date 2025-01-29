@@ -144,7 +144,7 @@ class User(BaseModel):
 @app.get("/test-db")
 async def test_db():
     user = users_collection.find_one({"email": "test@example.com"})
-    return {"User Found:": user}
+    return {"User Found:": str(user)}
 
 
 @app.post("/api/register")
