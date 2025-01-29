@@ -143,11 +143,9 @@ class User(BaseModel):
 
 @app.get("/test-db")
 async def test_db():
-    try:
-        collections = db.list_collection_names()
-        return {"status": "connected", "collections": collections}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    result = users_collection.insert_one({"email": "test@example.com", "password": "hashed_password_example"})
+    user = users_collection.find_one({"email": "test@example.com"})
+    return{"Inserted ID:", result.inserted_id, "User found:", user}
 
 @app.post("/api/register")
 async def register(user: User):
