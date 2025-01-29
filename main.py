@@ -24,15 +24,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # AWS and MongoDB Configurations
-MONGODB_URI = os.getenv("MONGODB_URI")
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
-AWS_ACCESS_KEY = os.getenv("ACCESS_KEY_ID")
-AWS_SECRET_KEY = os.getenv("SECRET_ACCESS_KEY")
-S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
-S3_FOLDER = os.getenv("S3_FOLDER")
-REGION = os.getenv("REGION")
+def get_secret(secret_name):
+    client = boto3.client("secretsmanager", region_name="your-region")
+    try:
+        response = client.get_secret_value(SecretId=secret_name)
+        return response["SecretString"]
+    except Exception as e:
+        print(f"Error retrieving secret: {e}")
+        return None
+
+ACCESS_KEY_ID = get_secret("ACCESS_KEY_ID")
+SECRET_ACCESS_KEY = get_secret("SECRET_ACCESS_KEY")
+OPENAI_API_KEY = get_secret("OPENAI_API_KEY")
+S3_BUCKET_NAME = get_secret("S3_BUCKET_NAME")
+S3_FOLDER = get_secret("S3_FOLDER")
+REGION = get_secret("REGION")
+MONGODB_URI = get_secret("MONGODB_URI")
+SECRET_KEY = get_secret("SECRET_KEY")
+ALGORITHM = get_secret("ALGORITHM")
 
 # OpenAI API Key
 openai.api_key = os.getenv("OPENAI_API_KEY")
