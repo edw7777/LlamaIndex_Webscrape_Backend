@@ -47,9 +47,8 @@ ALGORITHM = get_secret("ALGORITHM")
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # MongoDB Client
-client = MongoClient(MONGODB_URI)
-db = client["userdb"]
-users_collection = db["credentials"]
+def get_mongo_client():
+    return MongoClient(MONGODB_URI)
 
 # Password Hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -143,28 +142,43 @@ class User(BaseModel):
 
 @app.get("/test-db")
 async def test_db():
+    client = get_mongo_client()
+    db = client["userdb"]
+    users_collection = db["credentials"]
     user = users_collection.find_one({"email": "test@example.com"})
+    client.close()
     return {"User Found:": str(user)}
 
 
 @app.post("/api/register")
 async def register(user: User):
+    client = get_mongo_client()
+    db = client["userdb"]
+    users_collection = db["credentials"]
     if users_collection.find_one({"email": user.email}):
         raise HTTPException(status_code=400, detail="Email already registered")
     hashed_password = get_password_hash(user.password)
     users_collection.insert_one({"email": user.email, "password": hashed_password})
+    client.close()
     return {"message": "User registered successfully"}
 
 @app.post("/register")
 async def register(user: User):
+    client = get_mongo_client()
+    db = client["userdb"]
+    users_collection = db["credentials"]
     if users_collection.find_one({"email": user.email}):
         raise HTTPException(status_code=400, detail="Email already registered")
     hashed_password = get_password_hash(user.password)
     users_collection.insert_one({"email": user.email, "password": hashed_password})
+    client.close()
     return {"message": "User registered successfully"}
 
 @app.post("/login")
 async def login(user: User):
+    client = get_mongo_client()
+    db = client["userdb"]
+    users_collection = db["credentials"]
     db_user = users_collection.find_one({"email": user.email})
     if not db_user or not verify_password(user.password, db_user["password"]):
         raise HTTPException(status_code=400, detail="Invalid credentials")
@@ -177,10 +191,14 @@ async def test():
 
 @app.post("login")
 async def login(user: User):
+    client = get_mongo_client()
+    db = client["userdb"]
+    users_collection = db["credentials"]
     db_user = users_collection.find_one({"email": user.email})
     if not db_user or not verify_password(user.password, db_user["password"]):
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    access_token = create_access_token(data={"sub": user.email}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    access_token = create_access_token(data={"sub": user.email}, expires_delta=timedelta(minutes=60))
+    client.close()
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/api/me")
