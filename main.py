@@ -152,7 +152,7 @@ async def test_db():
 @app.get("/test-db-collection")
 async def test_db():
     client = get_mongo_client()
-    print("Connected to:", client.server_info())
+    return {"Connected to:": client.server_info()}
 
 
 @app.post("/api/register")
