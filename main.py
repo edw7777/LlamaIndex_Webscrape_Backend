@@ -145,7 +145,7 @@ class User(BaseModel):
 async def test_db():
     result = users_collection.insert_one({"email": "test@example.com", "password": "hashed_password_example"})
     #user = users_collection.find_one({"email": "test@example.com"})
-    return{"Inserted ID:": result.inserted_id}
+    return {"Inserted ID": str(result.inserted_id)}
 
 @app.post("/api/register")
 async def register(user: User):
