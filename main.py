@@ -149,6 +149,14 @@ async def test_db():
     client.close()
     return {"User Found:": str(user)}
 
+@app.get("/test-db-collection")
+async def test_db():
+    client = get_mongo_client()
+    db = client["userdb"]
+    users_collection = db["credentials"]
+    for user in users_collection.find():
+        print(user)
+
 
 @app.post("/api/register")
 async def register(user: User):
