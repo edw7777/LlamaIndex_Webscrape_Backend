@@ -141,6 +141,14 @@ class User(BaseModel):
     email: str
     password: str
 
+@app.get("/test-db")
+async def test_db():
+    try:
+        collections = db.list_collection_names()
+        return {"status": "connected", "collections": collections}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 @app.post("/api/register")
 async def register(user: User):
     if users_collection.find_one({"email": user.email}):
