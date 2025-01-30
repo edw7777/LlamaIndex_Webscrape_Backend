@@ -17,6 +17,7 @@ import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 import re
 import asyncio
+import json
 
 from dotenv import load_dotenv
 
@@ -25,13 +26,10 @@ load_dotenv()
 
 # AWS and MongoDB Configurations
 def get_secret(secret_name):
-    client = boto3.client("secretsmanager", region_name="us-east-1")
-    try:
-        response = client.get_secret_value(SecretId=secret_name)
-        return response["SecretString"]
-    except Exception as e:
-        print(f"Error retrieving secret: {e}")
-        return None
+    client = boto3.client('secretsmanager', region_name="us-east-1")
+    response = client.get_secret_value(SecretId=secret_name)
+    secret = json.loads(response['SecretString'])
+    return secret
 
 secrets = get_secret("LlamaIndex_Webscrape_Secrets")    
 
