@@ -25,7 +25,7 @@ load_dotenv()
 
 # AWS and MongoDB Configurations
 def get_secret(secret_name):
-    client = boto3.client("secretsmanager", region_name="your-region")
+    client = boto3.client("secretsmanager", region_name="us-east-1")
     try:
         response = client.get_secret_value(SecretId=secret_name)
         return response["SecretString"]
@@ -33,18 +33,20 @@ def get_secret(secret_name):
         print(f"Error retrieving secret: {e}")
         return None
 
-ACCESS_KEY_ID = get_secret("ACCESS_KEY_ID")
-SECRET_ACCESS_KEY = get_secret("SECRET_ACCESS_KEY")
-OPENAI_API_KEY = get_secret("OPENAI_API_KEY")
-S3_BUCKET_NAME = get_secret("S3_BUCKET_NAME")
-S3_FOLDER = get_secret("S3_FOLDER")
-REGION = get_secret("REGION")
-MONGODB_URI = get_secret("MONGODB_URI")
-SECRET_KEY = get_secret("SECRET_KEY")
-ALGORITHM = get_secret("ALGORITHM")
+secrets = get_secret("LlamaIndex_Webscrape_Secrets")    
+
+ACCESS_KEY_ID = secrets["ACCESS_KEY_ID"]
+SECRET_ACCESS_KEY = secrets["SECRET_ACCESS_KEY"]
+OPENAI_API_KEY = secrets["OPENAI_API_KEY"]
+S3_BUCKET_NAME = secrets["S3_BUCKET_NAME"]
+S3_FOLDER = secrets["S3_FOLDER"]
+REGION = secrets["REGION"]
+MONGODB_URI = secrets["MONGODB_URI"]
+SECRET_KEY = secrets["SECRET_KEY"]
+ALGORITHM = secrets["ALGORITHM"]
 
 # OpenAI API Key
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = OPENAI_API_KEY
 
 # MongoDB Client
 def get_mongo_client():
