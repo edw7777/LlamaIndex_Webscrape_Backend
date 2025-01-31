@@ -19,10 +19,9 @@ import re
 import asyncio
 import json
 
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
+import logging
+logging.basicConfig(level=logging.INFO)
+import time
 
 # AWS and MongoDB Configurations
 def get_secret(secret_name):
@@ -157,18 +156,6 @@ async def test_db():
     return {"Connected to:": client.address, "Databases": client.list_database_names()}
 
 
-@app.post("/api/register")
-async def register(user: User):
-    client = get_mongo_client()
-    db = client["userdb"]
-    users_collection = db["credentials"]
-    if users_collection.find_one({"email": user.email}):
-        raise HTTPException(status_code=400, detail="Email already registered")
-    hashed_password = get_password_hash(user.password)
-    users_collection.insert_one({"email": user.email, "password": hashed_password})
-    client.close()
-    return {"message": "User registered successfully"}
-
 @app.post("/register")
 async def register(user: User):
     client = get_mongo_client()
@@ -192,23 +179,18 @@ async def login(user: User):
     access_token = create_access_token(data={"sub": user.email}, expires_delta=timedelta(minutes=60))
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.post("/test")
-async def test():
-    return {"test": "test"}
-
-@app.post("login")
-async def login(user: User):
-    client = get_mongo_client()
-    db = client["userdb"]
-    users_collection = db["credentials"]
-    db_user = users_collection.find_one({"email": user.email})
-    if not db_user or not verify_password(user.password, db_user["password"]):
-        raise HTTPException(status_code=400, detail="Invalid credentials")
-    access_token = create_access_token(data={"sub": user.email}, expires_delta=timedelta(minutes=60))
-    client.close()
-    return {"access_token": access_token, "token_type": "bearer"}
-
 @app.get("/api/me")
+async def read_user_data(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return {"email": email}
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+@app.get("/me")
 async def read_user_data(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -224,8 +206,12 @@ async def read_user_data(token: str):
 class URLInput(BaseModel):
     url: str
 
-@app.post("/api/scrape")
+@app.post("/scrape")
 async def scrape_website(url_input: URLInput):
+
+    start_time = time.time()
+    logging.info(f"Scrape started: {url_input.url}")
+
     global current_loaded_index
     url_identifier = url_input.url.replace("https://", "").replace("http://", "").replace("/", "_")
     s3_path = f"{S3_FOLDER}{url_identifier}/"
@@ -247,12 +233,14 @@ async def scrape_website(url_input: URLInput):
     full_index.storage_context.persist(persist_dir="storage")
     for filename in os.listdir("storage"):
         s3_client.upload_file(os.path.join("storage", filename), S3_BUCKET_NAME, s3_path + filename)
+    logging.info(f"Scrape completed in {time.time() - start_time:.2f} seconds")
     current_loaded_index = full_index
+    logging.info(f"Index loaded in {time.time() - start_time:.2f} seconds")
     return {"message": "Website scraped and index created!"}
 
 class QueryInput(BaseModel):
   query:str
-@app.post("/api/query")
+@app.post("/query")
 async def query_index(query: QueryInput):
     if current_loaded_index is None:
         return {"error": "No index is currently loaded."}
@@ -262,5 +250,9 @@ async def query_index(query: QueryInput):
 
 # Redirect to docs by default
 @app.get("/api/")
+async def docs_redirect():
+    return RedirectResponse(url="/docs")
+
+@app.get("/")
 async def docs_redirect():
     return RedirectResponse(url="/docs")
