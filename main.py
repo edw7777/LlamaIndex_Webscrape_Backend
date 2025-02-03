@@ -136,7 +136,7 @@ def scrape_recursive(base_url, soup, max_depth=1, current_depth=0, visited=None)
 
 # --- Authentication Routes ---
 class User(BaseModel):
-    email: str
+    username: str
     password: str
 
 @app.get("/test-db")
@@ -161,10 +161,10 @@ async def register(user: User):
     client = get_mongo_client()
     db = client["userdb"]
     users_collection = db["credentials"]
-    if users_collection.find_one({"email": user.email}):
-        raise HTTPException(status_code=400, detail="Email already registered")
+    if users_collection.find_one({"username": user.username}):
+        raise HTTPException(status_code=400, detail="Username already registered")
     hashed_password = get_password_hash(user.password)
-    users_collection.insert_one({"email": user.email, "password": hashed_password})
+    users_collection.insert_one({"username:": user.username, "password": hashed_password})
     client.close()
     return {"message": "User registered successfully"}
 
@@ -173,20 +173,20 @@ async def login(user: User):
     client = get_mongo_client()
     db = client["userdb"]
     users_collection = db["credentials"]
-    db_user = users_collection.find_one({"email": user.email})
+    db_user = users_collection.find_one({"username": user.username})
     if not db_user or not verify_password(user.password, db_user["password"]):
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    access_token = create_access_token(data={"sub": user.email}, expires_delta=timedelta(minutes=60))
+    access_token = create_access_token(data={"sub": user.username}, expires_delta=timedelta(minutes=60))
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/api/me")
 async def read_user_data(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email = payload.get("sub")
-        if email is None:
+        username = payload.get("sub")
+        if username is None:
             raise HTTPException(status_code=401, detail="Invalid token")
-        return {"email": email}
+        return {"username": username}
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
@@ -194,10 +194,10 @@ async def read_user_data(token: str):
 async def read_user_data(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email = payload.get("sub")
-        if email is None:
+        username = payload.get("sub")
+        if username is None:
             raise HTTPException(status_code=401, detail="Invalid token")
-        return {"email": email}
+        return {"username": username}
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
@@ -208,10 +208,6 @@ class URLInput(BaseModel):
 
 @app.post("/scrape")
 async def scrape_website(url_input: URLInput):
-
-    start_time = time.time()
-    logging.info(f"Scrape started: {url_input.url}")
-
     global current_loaded_index
     url_identifier = url_input.url.replace("https://", "").replace("http://", "").replace("/", "_")
     s3_path = f"{S3_FOLDER}{url_identifier}/"
@@ -233,9 +229,7 @@ async def scrape_website(url_input: URLInput):
     full_index.storage_context.persist(persist_dir="storage")
     for filename in os.listdir("storage"):
         s3_client.upload_file(os.path.join("storage", filename), S3_BUCKET_NAME, s3_path + filename)
-    logging.info(f"Scrape completed in {time.time() - start_time:.2f} seconds")
     current_loaded_index = full_index
-    logging.info(f"Index loaded in {time.time() - start_time:.2f} seconds")
     return {"message": "Website scraped and index created!"}
 
 class QueryInput(BaseModel):
