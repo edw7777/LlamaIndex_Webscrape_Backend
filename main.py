@@ -111,7 +111,8 @@ def split_text(text, max_length=1000):
     for i in range(0, len(words), max_length):
         yield " ".join(words[i:i + max_length])
 
-def scrape_recursive(base_url, soup, max_depth=1, current_depth=0, visited=None):
+# just updated the max_depth
+def scrape_recursive(base_url, soup, max_depth=3, current_depth=0, visited=None):
     if visited is None:
         visited = set()
     if current_depth > max_depth:
@@ -136,6 +137,7 @@ def scrape_recursive(base_url, soup, max_depth=1, current_depth=0, visited=None)
 
 # --- Authentication Routes ---
 class User(BaseModel):
+    name: str
     username: str
     password: str
 
@@ -164,7 +166,7 @@ async def register(user: User):
     if users_collection.find_one({"username": user.username}):
         raise HTTPException(status_code=400, detail="Username already registered")
     hashed_password = get_password_hash(user.password)
-    users_collection.insert_one({"username:": user.username, "password": hashed_password})
+    users_collection.insert_one({"name": user.name, "username": user.username, "password": hashed_password})
     client.close()
     return {"message": "User registered successfully"}
 
@@ -224,7 +226,7 @@ async def scrape_website(url_input: URLInput):
         pass
     response = requests.get(url_input.url, headers={"User-Agent": "Mozilla/5.0"})
     soup = BeautifulSoup(response.content, "html.parser")
-    scrape_recursive(url_input.url, soup, max_depth=1)
+    scrape_recursive(url_input.url, soup, max_depth=3)
     full_index = GPTVectorStoreIndex.from_documents(documents)
     full_index.storage_context.persist(persist_dir="storage")
     for filename in os.listdir("storage"):
