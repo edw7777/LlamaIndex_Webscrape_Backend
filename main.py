@@ -136,7 +136,7 @@ def scrape_recursive(base_url, soup, max_depth=3, current_depth=0, visited=None)
 
 
 # --- Authentication Routes ---
-class User(BaseModel):
+class RegisterUser(BaseModel):
     name: str
     username: str
     password: str
@@ -159,7 +159,7 @@ async def test_db():
 
 
 @app.post("/register")
-async def register(user: User):
+async def register(user: RegisterUser):
     client = get_mongo_client()
     db = client["userdb"]
     users_collection = db["credentials"]
@@ -170,8 +170,12 @@ async def register(user: User):
     client.close()
     return {"message": "User registered successfully"}
 
+class LoginUser(BaseModel):
+    username: str
+    password: str
+
 @app.post("/login")
-async def login(user: User):
+async def login(user: LoginUser):
     client = get_mongo_client()
     db = client["userdb"]
     users_collection = db["credentials"]
