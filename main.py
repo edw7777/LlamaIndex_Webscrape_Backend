@@ -225,7 +225,8 @@ async def scrape_website(url_input: URLInput):
             s3_client.download_file(S3_BUCKET_NAME, s3_path + file_name, os.path.join(local_storage_path, file_name))
         storage_context = StorageContext.from_defaults(persist_dir=local_storage_path)
         current_loaded_index = load_index_from_storage(storage_context)
-        return {"message": "Index loaded successfully from S3!"}
+        #Index loaded successfully from S3
+        return {"message": "Website successfully loaded!"}
     except ClientError:
         pass
     response = requests.get(url_input.url, headers={"User-Agent": "Mozilla/5.0"})
@@ -236,7 +237,8 @@ async def scrape_website(url_input: URLInput):
     for filename in os.listdir("storage"):
         s3_client.upload_file(os.path.join("storage", filename), S3_BUCKET_NAME, s3_path + filename)
     current_loaded_index = full_index
-    return {"message": "Website scraped and index created!"}
+    #Webscrape complete and index created
+    return {"message": "Website successfully loaded!"}
 
 class QueryInput(BaseModel):
   query:str
