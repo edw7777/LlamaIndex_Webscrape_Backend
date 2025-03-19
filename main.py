@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -8,8 +8,10 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from urllib.parse import urljoin
 
+import shutil
+
 from bs4 import BeautifulSoup
-from llama_index.core import GPTVectorStoreIndex, StorageContext, load_index_from_storage, Document
+from llama_index.core import GPTVectorStoreIndex, StorageContext, load_index_from_storage, Document, SimpleDirectoryReader
 import requests
 import openai
 import os
@@ -62,6 +64,10 @@ s3_client = boto3.client(
 
 # FastAPI Instance
 app = FastAPI()
+
+#PDF local storage
+UPLOAD_DIR = "uploaded_pdfs"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # CORS Middleware
 app.add_middleware(
@@ -207,6 +213,24 @@ async def read_user_data(token: str):
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+# PDF upload 
+@app.post("/upload-pdf")
+async def upload_pdf(file: UploadFile = File(...)):
+    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    
+    # Save file locally
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Parse PDF and create index
+    documents = SimpleDirectoryReader(input_files=[file_path]).load_data()
+    pdf_index = GPTVectorStoreIndex.from_documents(documents)
+
+    # Store index in memory
+    global current_loaded_index
+    current_loaded_index = pdf_index
+
+    return {"message": f"PDF '{file.filename}' processed and indexed!"}
 
 # --- Scraping Routes ---
 class URLInput(BaseModel):
